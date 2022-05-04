@@ -9,6 +9,7 @@ import com.viaversion.viaversion.api.type.Type;
 import com.viaversion.viaversion.api.type.types.version.Types1_8;
 import de.gerrygames.viarewind.protocol.protocol1_8to1_9.Protocol1_8TO1_9;
 import de.gerrygames.viarewind.protocol.protocol1_8to1_9.metadata.MetadataRewriter;
+import de.gerrygames.viarewind.protocol.protocol1_8to1_9.storage.EntityTracker;
 import de.gerrygames.viarewind.replacement.EntityReplacement;
 import de.gerrygames.viarewind.utils.PacketUtil;
 
@@ -77,7 +78,7 @@ public class ShulkerReplacement implements EntityReplacement {
 		}
 		metadataList.add(new Metadata(11, MetaType1_9.VarInt, 2));
 
-		MetadataRewriter.transform(Entity1_10Types.EntityType.MAGMA_CUBE, metadataList);
+		MetadataRewriter.transform(Entity1_10Types.EntityType.MAGMA_CUBE, metadataList, entityId, user.get(EntityTracker.class));
 
 		metadataPacket.write(Types1_8.METADATA_LIST, metadataList);
 

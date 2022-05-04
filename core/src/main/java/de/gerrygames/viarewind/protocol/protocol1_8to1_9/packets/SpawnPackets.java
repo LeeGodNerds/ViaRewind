@@ -208,7 +208,7 @@ public class SpawnPackets {
 					if ((replacement = tracker.getEntityReplacement(entityId)) != null) {
 						replacement.updateMetadata(metadataList);
 					} else if (tracker.getClientEntityTypes().containsKey(entityId)) {
-						MetadataRewriter.transform(tracker.getClientEntityTypes().get(entityId), metadataList);
+						MetadataRewriter.transform(tracker.getClientEntityTypes().get(entityId), metadataList, entityId, tracker);
 					} else {
 						wrapper.cancel();
 					}
@@ -248,8 +248,9 @@ public class SpawnPackets {
 				handler(packetWrapper -> packetWrapper.write(Type.SHORT, (short) 0));
 				map(Types1_9.METADATA_LIST, Types1_8.METADATA_LIST);
 				this.handler(wrapper -> {
+					int entityId = wrapper.get(Type.VAR_INT, 0);
 					List<Metadata> metadataList = wrapper.get(Types1_8.METADATA_LIST, 0);
-					MetadataRewriter.transform(Entity1_10Types.EntityType.PLAYER, metadataList);
+					MetadataRewriter.transform(Entity1_10Types.EntityType.PLAYER, metadataList, entityId, wrapper.user().get(EntityTracker.class));
 				});
 				handler(packetWrapper -> {
 					int entityId = packetWrapper.get(Type.VAR_INT, 0);

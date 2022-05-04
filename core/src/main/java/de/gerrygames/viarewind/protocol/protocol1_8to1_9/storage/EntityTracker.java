@@ -16,6 +16,7 @@ import de.gerrygames.viarewind.replacement.EntityReplacement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class EntityTracker extends StoredObject implements ClientEntityIdChangeListener {
@@ -24,11 +25,24 @@ public class EntityTracker extends StoredObject implements ClientEntityIdChangeL
 	private final Map<Integer, List<Metadata>> metadataBuffer = new ConcurrentHashMap<>();
 	private final Map<Integer, EntityReplacement> entityReplacements = new ConcurrentHashMap<>();
 	private final Map<Integer, Vector> entityOffsets = new ConcurrentHashMap<>();
+	private final Set<Integer> entityBlocking = ConcurrentHashMap.newKeySet();
 	private int playerId;
 	private int playerGamemode = 0;
 
 	public EntityTracker(UserConnection user) {
 		super(user);
+	}
+
+	public boolean isEntityBlocking(int entityId) {
+		return this.entityBlocking.contains(entityId);
+	}
+
+	public void setEntityBlocking(int entityId, boolean blocking) {
+		if (blocking) {
+			this.entityBlocking.add(entityId);
+		} else {
+			this.entityBlocking.remove(entityId);
+		}
 	}
 
 	public void setPlayerId(int entityId) {
@@ -154,7 +168,7 @@ public class EntityTracker extends StoredObject implements ClientEntityIdChangeL
 			PacketWrapper wrapper = PacketWrapper.create(0x1C, null, this.getUser());
 			wrapper.write(Type.VAR_INT, entityId);
 			wrapper.write(Types1_8.METADATA_LIST, this.metadataBuffer.get(entityId));
-			MetadataRewriter.transform(this.getClientEntityTypes().get(entityId), this.metadataBuffer.get(entityId));
+			MetadataRewriter.transform(this.getClientEntityTypes().get(entityId), this.metadataBuffer.get(entityId), entityId, this);
 			if (!this.metadataBuffer.get(entityId).isEmpty()) {
 				try {
 					wrapper.send(Protocol1_8TO1_9.class);

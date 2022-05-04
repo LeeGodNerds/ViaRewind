@@ -2,6 +2,7 @@ package de.gerrygames.viarewind.protocol.protocol1_8to1_9.packets;
 
 import com.viaversion.viaversion.api.minecraft.Vector;
 import com.viaversion.viaversion.api.minecraft.entities.Entity1_10Types;
+import com.viaversion.viaversion.api.minecraft.item.Item;
 import com.viaversion.viaversion.api.minecraft.metadata.Metadata;
 import com.viaversion.viaversion.api.protocol.Protocol;
 import com.viaversion.viaversion.api.protocol.packet.PacketWrapper;
@@ -282,7 +283,7 @@ public class EntityPackets {
 					int entityId = wrapper.get(Type.VAR_INT, 0);
 					EntityTracker tracker = wrapper.user().get(EntityTracker.class);
 					if (tracker.getClientEntityTypes().containsKey(entityId)) {
-						MetadataRewriter.transform(tracker.getClientEntityTypes().get(entityId), metadataList);
+						MetadataRewriter.transform(tracker.getClientEntityTypes().get(entityId), metadataList, entityId, tracker);
 						if (metadataList.isEmpty()) wrapper.cancel();
 					} else {
 						tracker.addMetadataToBuffer(entityId, metadataList);
@@ -308,18 +309,28 @@ public class EntityPackets {
 		protocol.registerClientbound(ClientboundPackets1_9.ENTITY_EQUIPMENT, new PacketRemapper() {
 			@Override
 			public void registerMap() {
-				map(Type.VAR_INT);
 				handler(packetWrapper -> {
+					int entityId = packetWrapper.read(Type.VAR_INT);
 					int slot = packetWrapper.read(Type.VAR_INT);
+					Item item = packetWrapper.read(Type.ITEM);
 					if (slot == 1) {
+						final EntityTracker entityTracker = packetWrapper.user().get(EntityTracker.class);
+						if (entityTracker != null) {
+							if (item != null && item.identifier() == 442) {
+								entityTracker.setEntityBlocking(entityId, true);
+							} else {
+								entityTracker.setEntityBlocking(entityId, false);
+							}
+						}
 						packetWrapper.cancel();
+						return;
 					} else if (slot > 1) {
 						slot -= 1;
 					}
+					packetWrapper.write(Type.VAR_INT, entityId);
 					packetWrapper.write(Type.SHORT, (short) slot);
+					packetWrapper.write(Type.ITEM, ItemRewriter.toClient(item));
 				});
-				map(Type.ITEM);
-				handler(packetWrapper -> packetWrapper.set(Type.ITEM, 0, ItemRewriter.toClient(packetWrapper.get(Type.ITEM, 0))));
 			}
 		});
 

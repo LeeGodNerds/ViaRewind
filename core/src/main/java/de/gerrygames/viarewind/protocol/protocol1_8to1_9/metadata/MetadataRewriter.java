@@ -6,17 +6,20 @@ import com.viaversion.viaversion.api.minecraft.entities.Entity1_10Types;
 import com.viaversion.viaversion.api.minecraft.item.Item;
 import com.viaversion.viaversion.api.minecraft.metadata.Metadata;
 import com.viaversion.viaversion.api.minecraft.metadata.types.MetaType1_8;
-import com.viaversion.viaversion.api.minecraft.metadata.types.MetaType1_9;
 import com.viaversion.viaversion.protocols.protocol1_9to1_8.metadata.MetaIndex;
 import de.gerrygames.viarewind.ViaRewind;
 import de.gerrygames.viarewind.protocol.protocol1_8to1_9.items.ItemRewriter;
+import de.gerrygames.viarewind.protocol.protocol1_8to1_9.storage.EntityTracker;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class MetadataRewriter {
-	public static void transform(Entity1_10Types.EntityType type, List<Metadata> list) {
+	public static void transform(Entity1_10Types.EntityType type, List<Metadata> list, int entity, EntityTracker entityTracker) {
+		boolean isBlocking = entityTracker != null && entityTracker.isEntityBlocking(entity);
+		boolean modified = false;
+
 		for (Metadata entry : new ArrayList<>(list)) {
 			MetaIndex metaIndex = MetaIndex1_8to1_9.searchIndex(type, entry.id());
 			try {
@@ -30,8 +33,16 @@ public class MetadataRewriter {
 					entry.setId(metaIndex.getIndex());
 					switch (metaIndex.getNewType()) {
 						case Byte:
-							if (metaIndex.getOldType() == MetaType1_8.Byte) {
+							if (!modified && metaIndex.getOldType() == MetaType1_8.Byte) {
+								if (metaIndex == MetaIndex.ENTITY_STATUS) {
+									if (isBlocking) {
+										value = (byte) ((byte) value | 1 << 4);
+									} else {
+										value = (byte) ((byte) value & ~(1 << 4));
+									}
+								}
 								entry.setValue(value);
+								modified = true;
 							}
 							if (metaIndex.getOldType() == MetaType1_8.Int) {
 								entry.setValue(((Byte) value).intValue());
@@ -101,6 +112,13 @@ public class MetadataRewriter {
 			} catch (Exception e) {
 				list.remove(entry);
 			}
+		}
+
+		if (!modified) {
+			byte value = 0;
+			if (isBlocking)
+				value = (byte) (value | 1 << 4);
+			list.add(new Metadata(MetaIndex.ENTITY_STATUS.getIndex(), MetaType1_8.Byte, value));
 		}
 	}
 
